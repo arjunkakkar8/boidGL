@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { scene } from "./index";
-import { Euler } from "three";
+import { Fire } from "./fire";
 
 let camera;
 let boids = [],
+  fires = [],
   masterBoid,
   control = { horz: 0, vert: 0 },
   pressed;
@@ -19,26 +20,40 @@ const boundSize = 100,
   masterWeight = 25,
   maxVel = 0.5;
 
+let loader = new THREE.TextureLoader();
+loader.crossOrigin = "";
+let fireTex = loader.load("./assets/images/flame.png");
+
 function setup(count) {
   let geometry = new THREE.ConeBufferGeometry(0.5, 2, 20),
     material = new THREE.MeshNormalMaterial();
   geometry.rotateX(Math.PI / 2);
-  setupMaster();
   for (let i = 0; i < count; i++) {
+    let fire = new Fire(fireTex);
+    fire.position.set(0, 0, -1);
+    fire.rotateX(-Math.PI / 2);
+    fire.scale.set(1.5, 1.5, 1.5);
     let boid = new THREE.Mesh(geometry, material);
     boid.position.random().multiplyScalar(initSpread);
     boid.userData.velocity = new THREE.Vector3();
     boid.userData.weight = 1;
     boid.userData.index = i;
+    boid.add(fire);
     scene.add(boid);
     boids.push(boid);
+    fires.push(fire);
   }
+  setupMaster();
 }
 
 function setupMaster() {
   let geometry = new THREE.ConeBufferGeometry(1, 5, 20),
     material = new THREE.MeshNormalMaterial();
   geometry.rotateX(Math.PI / 2);
+  let fire = new Fire(fireTex);
+  fire.position.set(0, -0.5, -2.5);
+  fire.rotateX(-Math.PI / 2);
+  fire.scale.set(3, 3, 3);
   masterBoid = new THREE.Mesh(geometry, material);
   masterBoid.position
     .random()
@@ -53,7 +68,9 @@ function setupMaster() {
   camera.up.set(0, 1, 0);
   camera.lookAt(new THREE.Vector3(0, 0, 20));
   masterBoid.add(camera);
+  masterBoid.add(fire);
   scene.add(masterBoid);
+  fires.push(fire);
   document.addEventListener(
     "mousedown",
     () => {
@@ -176,4 +193,4 @@ function controlMaster(event) {
   }
 }
 
-export { setup, updateVelocities, boids, masterBoid, camera };
+export { setup, updateVelocities, boids, masterBoid, fires, camera };
