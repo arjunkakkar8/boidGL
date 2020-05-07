@@ -1,0 +1,17 @@
+set-type-size(scale, lh = false)
+    if scale in $type-size
+        font-size: $type-size[scale].size
+        if lh == true
+            line-height: $type-size[scale].line-height
+    else
+        error('Not a defined type scale')
+
+
+mq(breakpoint)
+	if breakpoint in $mq_vars
+		condition = unquote($mq_vars[breakpoint])
+		condition = 'only screen and %s' % condition
+		@media condition
+			{block}
+	else
+		error('Not a defined media query')

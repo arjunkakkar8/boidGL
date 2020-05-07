@@ -1,0 +1,38 @@
+{
+  "name": "boidGL",
+  "version": "1.0.0",
+  "description": "",
+  "main": "js/main.js",
+  "scripts": {
+    "start": "run-p make-tmp doc build watch serve",
+    "make-tmp": "rm -r .tmp; mkdir .tmp",
+    "doc": "node ./scripts/fetch-copy.js",
+    "build": "run-p build:assets build:html build:js build:css",
+    "build:assets": "cp -r src/assets dev",
+    "build:js": "parcel build src/js/index.js --out-dir dev",
+    "build:css": "stylus -w src/css/style.styl -u autoprefixer-stylus -o dev",
+    "build:html": "node ./scripts/hbs2html.js",
+    "watch": "run-p watch:js watch:html",
+    "watch:html": "onchange 'src/html/**/*' 'data/*/' -- run-s build:html",
+    "watch:js": "parcel watch src/js/index.js --out-dir dev --no-hmr",
+    "serve": "live-server dev"
+  },
+  "author": "Arjun Kakkar",
+  "license": "ISC",
+  "devDependencies": {
+    "archieml": "^0.4.2",
+    "autoprefixer-stylus": "^1.0.0",
+    "handlebars": "^4.7.3",
+    "inline-source": "^7.1.0",
+    "live-server": "^1.2.1",
+    "npm-run-all": "^4.1.5",
+    "onchange": "^6.1.0",
+    "parcel": "^1.12.4",
+    "request": "^2.88.0",
+    "stylus": "^0.54.7"
+  },
+  "dependencies": {
+    "stats.js": "^0.17.0",
+    "three": "^0.116.1"
+  }
+}
