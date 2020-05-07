@@ -72,15 +72,15 @@ function setupMaster() {
   scene.add(masterBoid);
   fires.push(fire);
   document.addEventListener(
-    "mousedown",
+    "pointerdown",
     () => {
       pressed = true;
     },
     false
   );
-  document.addEventListener("mousemove", controlMaster, false);
+  document.addEventListener("pointermove", controlMaster, false);
   document.addEventListener(
-    "mouseup",
+    "pointerup",
     () => {
       pressed = false;
     },
@@ -185,8 +185,8 @@ function boundary(el) {
 
 function controlMaster(event) {
   if (pressed) {
-    control.horz = window.innerWidth / 2 - event.screenX;
-    control.vert = -((2 * window.innerHeight) / 3 - event.screenY);
+    control.horz = window.innerWidth / 2 - event.offsetX;
+    control.vert = -((2 * window.innerHeight) / 3 - event.offsetY);
   } else {
     control.horz = 0;
     control.vert = 0;

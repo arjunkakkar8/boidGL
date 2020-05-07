@@ -29,17 +29,21 @@ function init() {
   setup(10);
 
   // Setup audio
-  let listener = new THREE.AudioListener();
-  camera.add(listener);
-  let sound = new THREE.Audio(listener);
-  let audioLoader = new THREE.AudioLoader();
-  audioLoader.load("./assets/sounds/ambient.mp3", function (buffer) {
-    sound.setBuffer(buffer);
-    sound.setLoop(true);
-    sound.setLoopEnd(66);
-    sound.setVolume(1);
-    sound.play();
-  });
+  let audioHandler = (e) => {
+    document.removeEventListener(e.type, audioHandler);
+    let listener = new THREE.AudioListener();
+    camera.add(listener);
+    let sound = new THREE.Audio(listener);
+    let audioLoader = new THREE.AudioLoader();
+    audioLoader.load("./assets/sounds/ambient.mp3", function (buffer) {
+      sound.setBuffer(buffer);
+      sound.setLoop(true);
+      sound.setLoopEnd(66);
+      sound.setVolume(1);
+      sound.play();
+    });
+  };
+  document.addEventListener("pointerdown", audioHandler);
 
   // Initialize clock for flame
   clock = new THREE.Clock();

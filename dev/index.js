@@ -37056,11 +37056,11 @@ function setupMaster() {
   _index.scene.add(masterBoid);
 
   fires.push(fire);
-  document.addEventListener("mousedown", function () {
+  document.addEventListener("pointerdown", function () {
     pressed = true;
   }, false);
-  document.addEventListener("mousemove", controlMaster, false);
-  document.addEventListener("mouseup", function () {
+  document.addEventListener("pointermove", controlMaster, false);
+  document.addEventListener("pointerup", function () {
     pressed = false;
   }, false);
 }
@@ -37147,8 +37147,8 @@ function boundary(el) {
 
 function controlMaster(event) {
   if (pressed) {
-    control.horz = window.innerWidth / 2 - event.screenX;
-    control.vert = -(2 * window.innerHeight / 3 - event.screenY);
+    control.horz = window.innerWidth / 2 - event.offsetX;
+    control.vert = -(2 * window.innerHeight / 3 - event.offsetY);
   } else {
     control.horz = 0;
     control.vert = 0;
@@ -37217,19 +37217,24 @@ function init() {
   exports.scene = scene = new THREE.Scene();
   (0, _boids.setup)(10); // Setup audio
 
-  var listener = new THREE.AudioListener();
+  var audioHandler = function audioHandler(e) {
+    document.removeEventListener(e.type, audioHandler);
+    var listener = new THREE.AudioListener();
 
-  _boids.camera.add(listener);
+    _boids.camera.add(listener);
 
-  var sound = new THREE.Audio(listener);
-  var audioLoader = new THREE.AudioLoader();
-  audioLoader.load("./assets/sounds/ambient.mp3", function (buffer) {
-    sound.setBuffer(buffer);
-    sound.setLoop(true);
-    sound.setLoopEnd(66);
-    sound.setVolume(1);
-    sound.play();
-  }); // Initialize clock for flame
+    var sound = new THREE.Audio(listener);
+    var audioLoader = new THREE.AudioLoader();
+    audioLoader.load("./assets/sounds/ambient.mp3", function (buffer) {
+      sound.setBuffer(buffer);
+      sound.setLoop(true);
+      sound.setLoopEnd(66);
+      sound.setVolume(1);
+      sound.play();
+    });
+  };
+
+  document.addEventListener("pointerdown", audioHandler); // Initialize clock for flame
 
   clock = new THREE.Clock(); // Setup framerate stats
 
