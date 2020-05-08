@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { scene } from "./index";
 import { Fire } from "./fire";
+import { OBJLoader2 } from "three/examples/jsm/loaders/OBJLoader2.js";
 
 let camera;
 let boids = [],
@@ -13,7 +14,7 @@ const boundSize = 100,
   initSpread = 200,
   minDist = 10,
   maxDist = 20,
-  centroidAttr = 0.001,
+  centroidAttr = 0.0005,
   velAttr = 0.05,
   repelAttr = 0.0005,
   controlSensitivity = 0.0005,
@@ -21,49 +22,61 @@ const boundSize = 100,
   maxVel = 0.5;
 
 const material = new THREE.MeshStandardMaterial({
-  color: 0x910000,
-  emissive: 0xb27f7f,
-  metalness: 0.8,
-  roughness: 0.2,
+  color: 0x964646,
+  emissive: 0x0,
+  metalness: 0.5,
+  roughness: 0.5,
 });
 
-// const material = new THREE.MeshPhongMaterial();
+const objLoader = new OBJLoader2();
 
 let loader = new THREE.TextureLoader();
 loader.crossOrigin = "";
 let fireTex = loader.load("./assets/images/flame.png");
 
 function setup(count) {
-  let geometry = new THREE.ConeBufferGeometry(0.5, 2, 20);
-  geometry.rotateX(Math.PI / 2);
-  geometry.translate(0, 0, -1);
-  for (let i = 0; i < count; i++) {
-    let fire = new Fire(fireTex);
-    fire.position.set(0, 0, -2);
-    fire.rotateX(-Math.PI / 2);
-    fire.scale.set(1.5, 1.5, 1.5);
-    let boid = new THREE.Mesh(geometry, material);
-    boid.position.random().multiplyScalar(initSpread);
-    boid.userData.velocity = new THREE.Vector3().random();
-    boid.userData.weight = 1;
-    boid.userData.index = i;
-    boid.add(fire);
-    scene.add(boid);
-    boids.push(boid);
-    fires.push(fire);
-  }
-  setupMaster();
+  return new Promise((resolve) => {
+    objLoader.load("./assets/models/spaceship.obj", (ship) => {
+      ship.traverse(function (node) {
+        if (node.isMesh) node.material = material;
+      });
+      setupMaster(ship);
+      for (let i = 0; i < count; i++) {
+        let fire = new Fire(fireTex);
+        fire.position.set(0, 0, -8.5);
+        fire.rotateX(-Math.PI / 2);
+        fire.scale.set(2, 10, 2);
+        let boid = new THREE.Object3D();
+        let drone = ship.clone();
+        drone.rotateY(-Math.PI / 2);
+        boid.position
+          .random()
+          .multiplyScalar(initSpread)
+          .sub(new THREE.Vector3().random().multiplyScalar(initSpread));
+        boid.scale.set(0.3, 0.3, 0.3);
+        boid.rotation.set(0, 0, Math.PI / 2);
+        boid.userData.velocity = new THREE.Vector3().random();
+        boid.userData.weight = 1;
+        boid.userData.index = i;
+        boid.add(fire);
+        boid.add(drone);
+        scene.add(boid);
+        boids.push(boid);
+        fires.push(fire);
+      }
+      resolve(ship);
+    });
+  });
 }
 
-function setupMaster() {
-  let geometry = new THREE.ConeBufferGeometry(1, 5, 20);
-  geometry.rotateX(Math.PI / 2);
-  geometry.translate(0, 0, -2.5);
+function setupMaster(ship) {
   let fire = new Fire(fireTex);
-  fire.position.set(0, -0.5, -5);
+  fire.position.set(0, 0, -14.8);
   fire.rotateX(-Math.PI / 2);
-  fire.scale.set(3, 3, 3);
-  masterBoid = new THREE.Mesh(geometry, material);
+  fire.scale.set(1.5, 20, 1.5);
+  masterBoid = new THREE.Object3D();
+  let drone = ship.clone();
+  drone.rotateY(-Math.PI / 2);
   masterBoid.position
     .random()
     .multiplyScalar(initSpread)
@@ -78,6 +91,7 @@ function setupMaster() {
   camera.lookAt(new THREE.Vector3(0, 0, 20));
   masterBoid.add(camera);
   masterBoid.add(fire);
+  masterBoid.add(drone);
   scene.add(masterBoid);
   fires.push(fire);
   document.addEventListener(
@@ -110,6 +124,7 @@ function updateVelocities() {
   );
   masterBoid.userData.velocity.add(boundary(masterBoid));
   velocityLimiter(masterBoid);
+
   [...boids].forEach((boid) => {
     boid.userData.velocity.add(boidAlg(boid));
     boid.userData.velocity.add(boundary(boid));
@@ -204,4 +219,4 @@ function controlMaster(event) {
   }
 }
 
-export { setup, updateVelocities, boids, masterBoid, fires, camera };
+export { setup, updateVelocities, boids, masterBoid, fires, camera, boundSize };

@@ -4,9 +4,8 @@
   "description": "",
   "main": "js/main.js",
   "scripts": {
-    "start": "run-p make-tmp doc build watch serve",
+    "start": "run-p make-tmp build watch serve",
     "make-tmp": "rm -r .tmp; mkdir .tmp",
-    "doc": "node ./scripts/fetch-copy.js",
     "build": "run-p build:assets build:html build:js build:css",
     "build:assets": "cp -r src/assets dev",
     "build:js": "parcel build src/js/index.js --out-dir dev",

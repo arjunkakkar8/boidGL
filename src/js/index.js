@@ -15,24 +15,23 @@ import { setupEnv, lights } from "./env";
 let Stats = require("stats.js");
 let scene, renderer, composer, clock, stats;
 
-init();
-animate();
-resize();
-d3.select(window).on("resize", resize);
+init().then(() => {
+  setupRenderer();
+  animate();
+  resize();
+  d3.select(window).on("resize", resize);
+});
 
 function init() {
-  // Setup renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  document.body.appendChild(renderer.domElement);
-
   // Setup scene
   scene = new THREE.Scene();
-  setup(14);
+  const setupPromise = setup(20);
   setupEnv();
 
   // Setup audio
   let audioHandler = (e) => {
     document.removeEventListener(e.type, audioHandler);
+    d3.select("#intro").classed("hide", true);
     let listener = new THREE.AudioListener();
     camera.add(listener);
     let sound = new THREE.Audio(listener);
@@ -45,7 +44,7 @@ function init() {
       sound.play();
     });
   };
-    document.addEventListener("pointerdown", audioHandler);
+  document.addEventListener("pointerdown", audioHandler);
 
   // Initialize clock for flame
   clock = new THREE.Clock();
@@ -55,19 +54,25 @@ function init() {
   stats.showPanel(0);
   document.body.appendChild(stats.dom);
 
-  // Reference grid
-  var gridHelper = new THREE.GridHelper(200, 200);
-  scene.add(gridHelper);
+  //   // Reference grid
+  //   var gridHelper = new THREE.GridHelper(200, 200);
+  //   scene.add(gridHelper);
 
-  // Post processing
+  return setupPromise;
+}
+
+function setupRenderer() {
+  renderer = new THREE.WebGLRenderer({ antialias: true, maxLights: 100 });
+  document.body.appendChild(renderer.domElement);
+
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   composer.addPass(new AfterimagePass(0.6));
   composer.addPass(
     new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.5,
-      0.1,
+      0.2,
+      1,
       0.6
     )
   );
@@ -110,15 +115,15 @@ function animate() {
       );
     }
   });
+
   fires.forEach((fire) => {
-    var delta = clock.getDelta();
-    var t = clock.elapsedTime * 10;
-    fire.update(t);
+    clock.getDelta();
+    fire.update(clock.elapsedTime * 10);
   });
 
-  stats.end();
-
   composer.render();
+
+  stats.end();
 
   requestAnimationFrame(animate);
 }

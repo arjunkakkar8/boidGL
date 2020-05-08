@@ -30,7 +30,7 @@ canvas {
   text-shadow: 1px 1px 1px #f00, -1px -1px 1px #00f;
   font-size: 0.8em;
 }
-@media only screen and (min-width: 40em) {
+@media only screen and (min-width: 60em) {
   #credits {
     font-size: 1em;
   }
@@ -38,4 +38,46 @@ canvas {
 a {
   text-decoration: none;
   color: #fff;
+}
+#intro {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  height: -webkit-fit-content;
+  height: -moz-fit-content;
+  height: fit-content;
+  margin: auto;
+  transform: translate(-50%, -50%);
+  font-family: "Courier New", Courier, monospace;
+  padding: 3em;
+  border: 2px solid #808080;
+  background-color: rgba(10,10,10,0.7);
+  transition: opacity 500ms;
+  width: 70%;
+}
+@media only screen and (min-width: 40em) {
+  #intro {
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+    max-width: 350px;
+  }
+}
+#intro.hide {
+  opacity: 0;
+}
+h1,
+h2,
+h4,
+p {
+  font-weight: 400;
+}
+.header {
+  display: flex;
+  flex-flow: row;
+  justify-content: space-around;
+}
+h4 {
+  margin: auto;
+  text-align: right;
 }

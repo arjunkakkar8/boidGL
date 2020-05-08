@@ -27,9 +27,41 @@ canvas
     color grey
     text-shadow 1px 1px 1px #ff0000, -1px -1px 1px blue
     font-size 0.8em
-    +mq('bp-4')
+    +mq('bp-6')
         font-size 1em
 
 a
     text-decoration none
     color white
+
+#intro
+    position fixed
+    top 50%
+    left 50%
+    height fit-content
+    margin auto
+    transform translate(-50%, -50%)
+    font-family "Courier New", Courier, monospace
+    padding 3em
+    border 2px solid grey
+    background-color rgba(10, 10, 10, 0.7)
+    transition opacity 500ms
+    width 70%
+    +mq('bp-4')
+        width fit-content
+        max-width 350px
+    &.hide
+        opacity 0
+    // text-shadow 1px 1px 1px #ff0000, -1px -1px 1px blue
+
+h1, h2, h4, p
+    font-weight 400
+
+.header
+    display flex
+    flex-flow row
+    justify-content space-around
+
+h4
+    margin auto
+    text-align right
