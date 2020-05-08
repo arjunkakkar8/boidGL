@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { scene } from "./index";
 import { Fire } from "./fire";
-import { RedFormat } from "three";
 
 let camera;
 let boids = [],
@@ -27,6 +26,8 @@ const material = new THREE.MeshStandardMaterial({
   metalness: 0.8,
   roughness: 0.2,
 });
+
+// const material = new THREE.MeshPhongMaterial();
 
 let loader = new THREE.TextureLoader();
 loader.crossOrigin = "";

@@ -11,7 +11,7 @@ function setupEnv() {
 }
 
 function boidLights() {
-  for (let i = 0; i < boids.length + 1; i++) {
+  for (let i = 0; i < 14; i++) {
     var light = new THREE.SpotLight(0xff4ec8, 1);
     light.angle = Math.PI;
     light.penumbra = 1;

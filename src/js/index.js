@@ -27,7 +27,7 @@ function init() {
 
   // Setup scene
   scene = new THREE.Scene();
-  setup(30);
+  setup(14);
   setupEnv();
 
   // Setup audio
@@ -45,7 +45,7 @@ function init() {
       sound.play();
     });
   };
-  document.addEventListener("pointerdown", audioHandler);
+    document.addEventListener("pointerdown", audioHandler);
 
   // Initialize clock for flame
   clock = new THREE.Clock();
@@ -98,15 +98,17 @@ function animate() {
     );
     boid.lookAt(newPos);
     boid.position.add(boid.userData.velocity);
-    lights[index].position.set(...boid.position.toArray());
-    lights[index].target.position.set(
-      ...new THREE.Vector3()
-        .addVectors(
-          boid.position,
-          boid.userData.velocity.clone().multiplyScalar(20)
-        )
-        .toArray()
-    );
+    if (lights[index]) {
+      lights[index].position.set(...boid.position.toArray());
+      lights[index].target.position.set(
+        ...new THREE.Vector3()
+          .addVectors(
+            boid.position,
+            boid.userData.velocity.clone().multiplyScalar(20)
+          )
+          .toArray()
+      );
+    }
   });
   fires.forEach((fire) => {
     var delta = clock.getDelta();

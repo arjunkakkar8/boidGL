@@ -37007,7 +37007,8 @@ var material = new THREE.MeshStandardMaterial({
   emissive: 0xb27f7f,
   metalness: 0.8,
   roughness: 0.2
-});
+}); // const material = new THREE.MeshPhongMaterial();
+
 var loader = new THREE.TextureLoader();
 loader.crossOrigin = "";
 var fireTex = loader.load("./assets/images/flame.png");
@@ -37190,7 +37191,7 @@ function setupEnv() {
 }
 
 function boidLights() {
-  for (var i = 0; i < _boids.boids.length + 1; i++) {
+  for (var i = 0; i < 14; i++) {
     var light = new THREE.SpotLight(0xff4ec8, 1);
     light.angle = Math.PI;
     light.penumbra = 1;
@@ -37269,7 +37270,7 @@ function init() {
   document.body.appendChild(renderer.domElement); // Setup scene
 
   exports.scene = scene = new THREE.Scene();
-  (0, _boids.setup)(30);
+  (0, _boids.setup)(14);
   (0, _env.setupEnv)(); // Setup audio
 
   var audioHandler = function audioHandler(e) {
@@ -37319,15 +37320,17 @@ function animate() {
   stats.begin();
   (0, _boids.updateVelocities)();
   [].concat(_toConsumableArray(_boids.boids), [_boids.masterBoid]).forEach(function (boid, index) {
-    var _lights$index$positio, _lights$index$target$;
-
     var newPos = new THREE.Vector3().addVectors(boid.position, boid.userData.velocity);
     boid.lookAt(newPos);
     boid.position.add(boid.userData.velocity);
 
-    (_lights$index$positio = _env.lights[index].position).set.apply(_lights$index$positio, _toConsumableArray(boid.position.toArray()));
+    if (_env.lights[index]) {
+      var _lights$index$positio, _lights$index$target$;
 
-    (_lights$index$target$ = _env.lights[index].target.position).set.apply(_lights$index$target$, _toConsumableArray(new THREE.Vector3().addVectors(boid.position, boid.userData.velocity.clone().multiplyScalar(20)).toArray()));
+      (_lights$index$positio = _env.lights[index].position).set.apply(_lights$index$positio, _toConsumableArray(boid.position.toArray()));
+
+      (_lights$index$target$ = _env.lights[index].target.position).set.apply(_lights$index$target$, _toConsumableArray(new THREE.Vector3().addVectors(boid.position, boid.userData.velocity.clone().multiplyScalar(20)).toArray()));
+    }
   });
 
   _boids.fires.forEach(function (fire) {
