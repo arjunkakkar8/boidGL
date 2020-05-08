@@ -38,6 +38,7 @@ canvas {
 a {
   text-decoration: none;
   color: #fff;
+  pointer-events: auto;
 }
 #intro {
   position: fixed;
