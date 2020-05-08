@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { scene } from "./index";
 import { Fire } from "./fire";
+import { RedFormat } from "three";
 
 let camera;
 let boids = [],
@@ -16,26 +17,33 @@ const boundSize = 100,
   centroidAttr = 0.001,
   velAttr = 0.05,
   repelAttr = 0.0005,
-  controlSensitivity = 0.00005,
+  controlSensitivity = 0.0005,
   masterWeight = 25,
   maxVel = 0.5;
+
+const material = new THREE.MeshStandardMaterial({
+  color: 0x910000,
+  emissive: 0xb27f7f,
+  metalness: 0.8,
+  roughness: 0.2,
+});
 
 let loader = new THREE.TextureLoader();
 loader.crossOrigin = "";
 let fireTex = loader.load("./assets/images/flame.png");
 
 function setup(count) {
-  let geometry = new THREE.ConeBufferGeometry(0.5, 2, 20),
-    material = new THREE.MeshNormalMaterial();
+  let geometry = new THREE.ConeBufferGeometry(0.5, 2, 20);
   geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, 0, -1);
   for (let i = 0; i < count; i++) {
     let fire = new Fire(fireTex);
-    fire.position.set(0, 0, -1);
+    fire.position.set(0, 0, -2);
     fire.rotateX(-Math.PI / 2);
     fire.scale.set(1.5, 1.5, 1.5);
     let boid = new THREE.Mesh(geometry, material);
     boid.position.random().multiplyScalar(initSpread);
-    boid.userData.velocity = new THREE.Vector3();
+    boid.userData.velocity = new THREE.Vector3().random();
     boid.userData.weight = 1;
     boid.userData.index = i;
     boid.add(fire);
@@ -47,11 +55,11 @@ function setup(count) {
 }
 
 function setupMaster() {
-  let geometry = new THREE.ConeBufferGeometry(1, 5, 20),
-    material = new THREE.MeshNormalMaterial();
+  let geometry = new THREE.ConeBufferGeometry(1, 5, 20);
   geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, 0, -2.5);
   let fire = new Fire(fireTex);
-  fire.position.set(0, -0.5, -2.5);
+  fire.position.set(0, -0.5, -5);
   fire.rotateX(-Math.PI / 2);
   fire.scale.set(3, 3, 3);
   masterBoid = new THREE.Mesh(geometry, material);
@@ -83,6 +91,8 @@ function setupMaster() {
     "pointerup",
     () => {
       pressed = false;
+      control.horz = 0;
+      control.vert = 0;
     },
     false
   );
@@ -185,11 +195,11 @@ function boundary(el) {
 
 function controlMaster(event) {
   if (pressed) {
-    control.horz = window.innerWidth / 2 - event.offsetX;
-    control.vert = -((2 * window.innerHeight) / 3 - event.offsetY);
-  } else {
-    control.horz = 0;
-    control.vert = 0;
+    control.horz =
+      (100 * (window.innerWidth / 2 - event.offsetX)) / window.innerWidth;
+    control.vert =
+      (-100 * ((2 * window.innerHeight) / 3 - event.offsetY)) /
+      window.innerHeight;
   }
 }
 

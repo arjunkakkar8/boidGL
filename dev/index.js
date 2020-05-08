@@ -36999,26 +36999,32 @@ var boundSize = 100,
     centroidAttr = 0.001,
     velAttr = 0.05,
     repelAttr = 0.0005,
-    controlSensitivity = 0.00005,
+    controlSensitivity = 0.0005,
     masterWeight = 25,
     maxVel = 0.5;
+var material = new THREE.MeshStandardMaterial({
+  color: 0x910000,
+  emissive: 0xb27f7f,
+  metalness: 0.8,
+  roughness: 0.2
+});
 var loader = new THREE.TextureLoader();
 loader.crossOrigin = "";
 var fireTex = loader.load("./assets/images/flame.png");
 
 function setup(count) {
-  var geometry = new THREE.ConeBufferGeometry(0.5, 2, 20),
-      material = new THREE.MeshNormalMaterial();
+  var geometry = new THREE.ConeBufferGeometry(0.5, 2, 20);
   geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, 0, -1);
 
   for (var i = 0; i < count; i++) {
     var fire = new _fire.Fire(fireTex);
-    fire.position.set(0, 0, -1);
+    fire.position.set(0, 0, -2);
     fire.rotateX(-Math.PI / 2);
     fire.scale.set(1.5, 1.5, 1.5);
     var boid = new THREE.Mesh(geometry, material);
     boid.position.random().multiplyScalar(initSpread);
-    boid.userData.velocity = new THREE.Vector3();
+    boid.userData.velocity = new THREE.Vector3().random();
     boid.userData.weight = 1;
     boid.userData.index = i;
     boid.add(fire);
@@ -37033,11 +37039,11 @@ function setup(count) {
 }
 
 function setupMaster() {
-  var geometry = new THREE.ConeBufferGeometry(1, 5, 20),
-      material = new THREE.MeshNormalMaterial();
+  var geometry = new THREE.ConeBufferGeometry(1, 5, 20);
   geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, 0, -2.5);
   var fire = new _fire.Fire(fireTex);
-  fire.position.set(0, -0.5, -2.5);
+  fire.position.set(0, -0.5, -5);
   fire.rotateX(-Math.PI / 2);
   fire.scale.set(3, 3, 3);
   exports.masterBoid = masterBoid = new THREE.Mesh(geometry, material);
@@ -37062,6 +37068,8 @@ function setupMaster() {
   document.addEventListener("pointermove", controlMaster, false);
   document.addEventListener("pointerup", function () {
     pressed = false;
+    control.horz = 0;
+    control.vert = 0;
   }, false);
 }
 
@@ -37147,14 +37155,58 @@ function boundary(el) {
 
 function controlMaster(event) {
   if (pressed) {
-    control.horz = window.innerWidth / 2 - event.offsetX;
-    control.vert = -(2 * window.innerHeight / 3 - event.offsetY);
-  } else {
-    control.horz = 0;
-    control.vert = 0;
+    control.horz = 100 * (window.innerWidth / 2 - event.offsetX) / window.innerWidth;
+    control.vert = -100 * (2 * window.innerHeight / 3 - event.offsetY) / window.innerHeight;
   }
 }
-},{"three":"../../node_modules/three/build/three.module.js","./index":"index.js","./fire":"fire.js"}],"../../node_modules/stats.js/build/stats.min.js":[function(require,module,exports) {
+},{"three":"../../node_modules/three/build/three.module.js","./index":"index.js","./fire":"fire.js"}],"env.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.setupEnv = setupEnv;
+exports.lights = void 0;
+
+var THREE = _interopRequireWildcard(require("three"));
+
+var _index = require("./index");
+
+var _boids = require("./boids");
+
+function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+
+var lights = [];
+exports.lights = lights;
+
+function setupEnv() {
+  var light = new THREE.AmbientLight(0x404040, 3);
+
+  _index.scene.add(light);
+
+  boidLights();
+}
+
+function boidLights() {
+  for (var i = 0; i < _boids.boids.length + 1; i++) {
+    var light = new THREE.SpotLight(0xff4ec8, 1);
+    light.angle = Math.PI;
+    light.penumbra = 1;
+    light.decay = 0.2;
+    light.distance = 50;
+    light.position.set(0, 0, 0);
+    light.target.position.set(0, 0, 0);
+
+    _index.scene.add(light);
+
+    _index.scene.add(light.target);
+
+    lights.push(light);
+  }
+}
+},{"three":"../../node_modules/three/build/three.module.js","./index":"index.js","./boids":"boids.js"}],"../../node_modules/stats.js/build/stats.min.js":[function(require,module,exports) {
 var define;
 // stats.js - http://github.com/mrdoob/stats.js
 (function(f,e){"object"===typeof exports&&"undefined"!==typeof module?module.exports=e():"function"===typeof define&&define.amd?define(e):f.Stats=e()})(this,function(){var f=function(){function e(a){c.appendChild(a.dom);return a}function u(a){for(var d=0;d<c.children.length;d++)c.children[d].style.display=d===a?"block":"none";l=a}var l=0,c=document.createElement("div");c.style.cssText="position:fixed;top:0;left:0;cursor:pointer;opacity:0.9;z-index:10000";c.addEventListener("click",function(a){a.preventDefault();
@@ -37181,6 +37233,8 @@ var _AfterimagePass = require("three/examples/jsm/postprocessing/AfterimagePass.
 var _UnrealBloomPass = require("three/examples/jsm/postprocessing/UnrealBloomPass.js");
 
 var _boids = require("./boids");
+
+var _env = require("./env");
 
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
@@ -37215,7 +37269,8 @@ function init() {
   document.body.appendChild(renderer.domElement); // Setup scene
 
   exports.scene = scene = new THREE.Scene();
-  (0, _boids.setup)(10); // Setup audio
+  (0, _boids.setup)(30);
+  (0, _env.setupEnv)(); // Setup audio
 
   var audioHandler = function audioHandler(e) {
     document.removeEventListener(e.type, audioHandler);
@@ -37263,10 +37318,16 @@ function resize() {
 function animate() {
   stats.begin();
   (0, _boids.updateVelocities)();
-  [].concat(_toConsumableArray(_boids.boids), [_boids.masterBoid]).forEach(function (boid) {
+  [].concat(_toConsumableArray(_boids.boids), [_boids.masterBoid]).forEach(function (boid, index) {
+    var _lights$index$positio, _lights$index$target$;
+
     var newPos = new THREE.Vector3().addVectors(boid.position, boid.userData.velocity);
     boid.lookAt(newPos);
     boid.position.add(boid.userData.velocity);
+
+    (_lights$index$positio = _env.lights[index].position).set.apply(_lights$index$positio, _toConsumableArray(boid.position.toArray()));
+
+    (_lights$index$target$ = _env.lights[index].target.position).set.apply(_lights$index$target$, _toConsumableArray(new THREE.Vector3().addVectors(boid.position, boid.userData.velocity.clone().multiplyScalar(20)).toArray()));
   });
 
   _boids.fires.forEach(function (fire) {
@@ -37279,5 +37340,5 @@ function animate() {
   composer.render();
   requestAnimationFrame(animate);
 }
-},{"three":"../../node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/EffectComposer.js":"../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js","three/examples/jsm/postprocessing/RenderPass.js":"../../node_modules/three/examples/jsm/postprocessing/RenderPass.js","three/examples/jsm/postprocessing/AfterimagePass.js":"../../node_modules/three/examples/jsm/postprocessing/AfterimagePass.js","three/examples/jsm/postprocessing/UnrealBloomPass.js":"../../node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","./boids":"boids.js","stats.js":"../../node_modules/stats.js/build/stats.min.js"}]},{},["index.js"], null)
+},{"three":"../../node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/EffectComposer.js":"../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js","three/examples/jsm/postprocessing/RenderPass.js":"../../node_modules/three/examples/jsm/postprocessing/RenderPass.js","three/examples/jsm/postprocessing/AfterimagePass.js":"../../node_modules/three/examples/jsm/postprocessing/AfterimagePass.js","three/examples/jsm/postprocessing/UnrealBloomPass.js":"../../node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","./boids":"boids.js","./env":"env.js","stats.js":"../../node_modules/stats.js/build/stats.min.js"}]},{},["index.js"], null)
 //# sourceMappingURL=/index.js.map

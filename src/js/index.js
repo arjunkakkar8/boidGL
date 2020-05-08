@@ -11,6 +11,7 @@ import {
   camera,
   fires,
 } from "./boids";
+import { setupEnv, lights } from "./env";
 let Stats = require("stats.js");
 let scene, renderer, composer, clock, stats;
 
@@ -26,7 +27,8 @@ function init() {
 
   // Setup scene
   scene = new THREE.Scene();
-  setup(10);
+  setup(30);
+  setupEnv();
 
   // Setup audio
   let audioHandler = (e) => {
@@ -89,20 +91,29 @@ function resize() {
 function animate() {
   stats.begin();
   updateVelocities();
-
-  [...boids, masterBoid].forEach((boid) => {
+  [...boids, masterBoid].forEach((boid, index) => {
     let newPos = new THREE.Vector3().addVectors(
       boid.position,
       boid.userData.velocity
     );
     boid.lookAt(newPos);
     boid.position.add(boid.userData.velocity);
+    lights[index].position.set(...boid.position.toArray());
+    lights[index].target.position.set(
+      ...new THREE.Vector3()
+        .addVectors(
+          boid.position,
+          boid.userData.velocity.clone().multiplyScalar(20)
+        )
+        .toArray()
+    );
   });
   fires.forEach((fire) => {
     var delta = clock.getDelta();
     var t = clock.elapsedTime * 10;
     fire.update(t);
   });
+
   stats.end();
 
   composer.render();
