@@ -81,7 +81,7 @@ function boundaryLights() {
   for (let i = 0; i < 10; i++) {
     let boundLight = new THREE.RectAreaLight(
       boundLightParams[i].color,
-      1,
+      0.3,
       ...boundLightParams[i].size
     );
     let position = [];
@@ -103,19 +103,19 @@ function boundaryLights() {
   }
 }
 
-function boidLights() {
-  for (let i = 0; i < 2; i++) {
-    var light = new THREE.SpotLight(0xff4ec8, 0.5);
-    light.angle = Math.PI;
-    light.penumbra = 1;
-    light.decay = 0.2;
-    light.distance = 50;
-    light.position.set(0, 0, 0);
-    light.target.position.set(0, 0, 0);
-    scene.add(light);
-    scene.add(light.target);
-    lights.push(light);
-  }
-}
+// function boidLights() {
+//   for (let i = 0; i < 2; i++) {
+//     var light = new THREE.SpotLight(0xff4ec8, 0.5);
+//     light.angle = Math.PI;
+//     light.penumbra = 1;
+//     light.decay = 0.2;
+//     light.distance = 50;
+//     light.position.set(0, 0, 0);
+//     light.target.position.set(0, 0, 0);
+//     scene.add(light);
+//     scene.add(light.target);
+//     lights.push(light);
+//   }
+// }
 
-export { setupEnv, lights };
+export { setupEnv, boundLights };

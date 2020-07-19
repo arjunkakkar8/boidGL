@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { scene } from "./index";
 import { Fire } from "./fire";
-import { OBJLoader2 } from "three/examples/jsm/loaders/OBJLoader2.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import cloneGltf from "./cloneGLTF";
 
 let camera;
 let boids = [],
@@ -21,14 +22,7 @@ const boundSize = 100,
   masterWeight = 25,
   maxVel = 0.5;
 
-const material = new THREE.MeshStandardMaterial({
-  color: 0x964646,
-  emissive: 0x0,
-  metalness: 0.5,
-  roughness: 0.5,
-});
-
-const objLoader = new OBJLoader2();
+const gltfLoader = new GLTFLoader();
 
 let loader = new THREE.TextureLoader();
 loader.crossOrigin = "";
@@ -36,10 +30,7 @@ let fireTex = loader.load("./assets/images/flame.png");
 
 function setup(count) {
   return new Promise((resolve) => {
-    objLoader.load("./assets/models/spaceship.obj", (ship) => {
-      ship.traverse(function (node) {
-        if (node.isMesh) node.material = material;
-      });
+    gltfLoader.load("./assets/models/spaceship.gltf", (ship) => {
       setupMaster(ship);
       for (let i = 0; i < count; i++) {
         let fire = new Fire(fireTex);
@@ -47,8 +38,8 @@ function setup(count) {
         fire.rotateX(-Math.PI / 2);
         fire.scale.set(2, 10, 2);
         let boid = new THREE.Object3D();
-        let drone = ship.clone();
-        drone.rotateY(-Math.PI / 2);
+        let drone = cloneGltf(ship);
+        drone.scene.rotateY(-Math.PI / 2);
         boid.position
           .random()
           .multiplyScalar(initSpread)
@@ -59,7 +50,7 @@ function setup(count) {
         boid.userData.weight = 1;
         boid.userData.index = i;
         boid.add(fire);
-        boid.add(drone);
+        boid.add(drone.scene);
         scene.add(boid);
         boids.push(boid);
         fires.push(fire);
@@ -75,8 +66,8 @@ function setupMaster(ship) {
   fire.rotateX(-Math.PI / 2);
   fire.scale.set(1.5, 20, 1.5);
   masterBoid = new THREE.Object3D();
-  let drone = ship.clone();
-  drone.rotateY(-Math.PI / 2);
+  let drone = cloneGltf(ship);
+  drone.scene.rotateY(-Math.PI / 2);
   masterBoid.position
     .random()
     .multiplyScalar(initSpread)
@@ -91,7 +82,7 @@ function setupMaster(ship) {
   camera.lookAt(new THREE.Vector3(0, 0, 20));
   masterBoid.add(camera);
   masterBoid.add(fire);
-  masterBoid.add(drone);
+  masterBoid.add(drone.scene);
   scene.add(masterBoid);
   fires.push(fire);
   document.addEventListener(
