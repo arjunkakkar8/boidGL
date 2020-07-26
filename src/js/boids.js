@@ -3,22 +3,24 @@ import { scene } from "./index";
 import { Fire } from "./fire";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import cloneGltf from "./cloneGLTF";
+import { Layers } from "three";
 
-let camera;
+let camera, cameraVel;
 let boids = [],
   fires = [],
   masterBoid,
   control = { horz: 0, vert: 0 },
-  pressed;
+  lag = { horz: 0, vert: 0 },
+  pressed = false;
 
 const boundSize = 100,
-  initSpread = 200,
+  initSpread = 100,
   minDist = 10,
   maxDist = 20,
   centroidAttr = 0.0005,
   velAttr = 0.05,
   repelAttr = 0.0005,
-  controlSensitivity = 0.0005,
+  controlSensitivity = 0.001,
   masterWeight = 25,
   maxVel = 0.5;
 
@@ -75,7 +77,7 @@ function setupMaster(ship) {
   masterBoid.userData.velocity = new THREE.Vector3(0.1, 0, 0);
   masterBoid.userData.weight = masterWeight;
   masterBoid.userData.index = "master";
-  camera = new THREE.PerspectiveCamera(70, 2, 0.01, 500);
+  camera = new THREE.PerspectiveCamera(70, 2, 1, 500);
   camera.position.y = 10;
   camera.position.z = -20;
   camera.up.set(0, 1, 0);
@@ -97,11 +99,27 @@ function setupMaster(ship) {
     "pointerup",
     () => {
       pressed = false;
-      control.horz = 0;
-      control.vert = 0;
     },
     false
   );
+}
+
+function updateCameraAngle() {
+  let camDirection = new THREE.Vector3()
+    .copy(masterBoid.userData.velocity)
+    .normalize();
+  camDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), lag.horz);
+  camDirection.applyAxisAngle(
+    new THREE.Vector3(0, 1, 0).cross(masterBoid.userData.velocity).normalize(),
+    lag.vert
+  );
+  camera.lookAt(
+    new THREE.Vector3().addVectors(masterBoid.position, camDirection)
+  );
+  if (!pressed) {
+    lag.horz = decayToZero(lag.horz, 0.1);
+    lag.vert = decayToZero(lag.vert, 0.1);
+  }
 }
 
 function updateVelocities() {
@@ -121,6 +139,10 @@ function updateVelocities() {
     boid.userData.velocity.add(boundary(boid));
     velocityLimiter(boid);
   });
+  if (!pressed) {
+    control.horz = decayToZero(control.horz, 2);
+    control.vert = decayToZero(control.vert, 2);
+  }
 }
 
 function boidAlg(el) {
@@ -202,12 +224,40 @@ function boundary(el) {
 
 function controlMaster(event) {
   if (pressed) {
-    control.horz =
-      (100 * (window.innerWidth / 2 - event.offsetX)) / window.innerWidth;
-    control.vert =
-      (-100 * ((2 * window.innerHeight) / 3 - event.offsetY)) /
-      window.innerHeight;
+    const xamount =
+        (100 * (window.innerWidth / 2 - event.offsetX)) / window.innerWidth,
+      yamount =
+        (-100 * ((2 * window.innerHeight) / 3 - event.offsetY)) /
+        window.innerHeight;
+
+    control.horz = xamount;
+    control.vert = yamount;
+    lag.horz -= 0.001 * xamount;
+    lag.vert += 0.002 * yamount;
+    lag.horz = Math.min(1000, Math.max(-1000, lag.horz));
+    lag.vert = Math.min(1000, Math.max(-1000, lag.vert));
   }
 }
 
-export { setup, updateVelocities, boids, masterBoid, fires, camera, boundSize };
+function decayToZero(current, speed) {
+  let retval = 0;
+  if (current > 0) {
+    retval = current - speed;
+    retval = Math.max(retval, 0);
+  } else if (current < 0) {
+    retval = current + speed;
+    retval = Math.min(retval, 0);
+  }
+  return retval;
+}
+
+export {
+  setup,
+  updateVelocities,
+  updateCameraAngle,
+  boids,
+  masterBoid,
+  fires,
+  camera,
+  boundSize,
+};

@@ -6,14 +6,20 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import {
   setup,
   updateVelocities,
+  updateCameraAngle,
   boids,
   masterBoid,
   camera,
   fires,
 } from "./boids";
 import { setupEnv, boundLights } from "./env";
+
 let Stats = require("stats.js");
-let scene, renderer, composer, finalComposer, clock, stats;
+
+let scene, renderer, composer, depthRenderTarget, shaderPass, clock, stats;
+
+let previousMatrixWorldInverse = new THREE.Matrix4(),
+  previousProjectionMatrix = new THREE.Matrix4();
 
 init().then(() => {
   setupRenderer();
@@ -65,6 +71,14 @@ function setupRenderer() {
   renderer = new THREE.WebGLRenderer({ antialias: true, maxLights: 100 });
   document.body.appendChild(renderer.domElement);
 
+  depthRenderTarget = new THREE.WebGLRenderTarget(
+    window.innerWidth,
+    window.innerHeight
+  );
+  depthRenderTarget.depthBuffer = true;
+  depthRenderTarget.depthTexture = new THREE.DepthTexture();
+  renderer.setRenderTarget(depthRenderTarget);
+
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const bloomPass = new UnrealBloomPass(
@@ -74,17 +88,15 @@ function setupRenderer() {
     0.1
   );
   composer.addPass(bloomPass);
-  const customPass = new ShaderPass(
+  shaderPass = new ShaderPass(
     new THREE.ShaderMaterial({
       uniforms: {
-        resolution: {
-          value: [
-            document.body.offsetWidth * window.devicePixelRatio,
-            document.body.offsetHeight * window.devicePixelRatio,
-          ],
-        },
         baseTexture: { value: null },
-        time: {value: 2.5}
+        depthTexture: { value: null },
+        cameraNear: { value: 0 },
+        cameraFar: { value: 0 },
+        clipToWorldMatrix: { type: "m4", value: new THREE.Matrix4() },
+        previousWorldToClipMatrix: { type: "m4", value: new THREE.Matrix4() },
       },
       vertexShader: `
       varying vec2 vUv;
@@ -94,101 +106,54 @@ function setupRenderer() {
 			}
       `,
       fragmentShader: `
-      uniform sampler2D baseTexture;
-      uniform float time;
-      uniform vec2 resolution;
-			varying vec2 vUv;
+      #include <packing>
+      #define VELOCITY_FACTOR .4
+      varying vec2 vUv;
       
-      const float SAMPLES = 24.; 
+      uniform sampler2D baseTexture;
+      uniform sampler2D depthTexture;
+      uniform float cameraNear;
+      uniform float cameraFar;
+      uniform mat4 clipToWorldMatrix;
+      uniform mat4 previousWorldToClipMatrix;
+    
+			void main() {
+        float zOverW = texture2D( depthTexture, vUv ).x ;
+        vec4 clipPosition = vec4(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0, zOverW * 2.0 - 1.0, 1.0);
 
-      float hash( vec2 p ){ return fract(sin(dot(p, vec2(41, 289)))*45758.5453); }
+        vec4 worldPosition = clipToWorldMatrix * clipPosition;
+        worldPosition /= worldPosition.w;
 
-      vec3 lOff(){    
-          
-          vec2 u = sin(vec2(1.57, 0));
-          mat2 a = mat2(u, -u.y, u.x);
-          
-          vec3 l = normalize(vec3(1.5, 1., -0.5));
-          l.xz = a * l.xz;
-          l.xy = a * l.xy;
-          
-          return l;
-          
-      }
+        vec4 previousClipPosition = previousWorldToClipMatrix * worldPosition;
+        previousClipPosition /= previousClipPosition.w;
 
-      void main(){
-          
-          // Screen coordinates.
-          vec2 uv = vUv.xy / resolution.xy;
-
-          // Radial blur factors.
-          //
-          // Falloff, as we radiate outwards.
-          float decay = 0.97; 
-          // Controls the sample density, which in turn, controls the sample spread.
-          float density = 0.5; 
-          // Sample weight. Decays as we radiate outwards.
-          float weight = 0.1; 
-          
-          // Light offset. Kind of fake. See above.
-          vec3 l = lOff();
-          
-          // Offset texture position (uv - .5), offset again by the fake light movement.
-          // It's used to set the blur direction (a direction vector of sorts), and is used 
-          // later to center the spotlight.
-          //
-          // The range is centered on zero, which allows the accumulation to spread out in
-          // all directions. Ie; It's radial.
-          vec2 tuv =  uv - .5 - l.xy*.45;
-          
-          // Dividing the direction vector above by the sample number and a density factor
-          // which controls how far the blur spreads out. Higher density means a greater 
-          // blur radius.
-          vec2 dTuv = tuv*density/SAMPLES;
-          
-          // Grabbing a portion of the initial texture sample. Higher numbers will make the
-          // scene a little clearer, but I'm going for a bit of abstraction.
-          vec4 col = texture2D(baseTexture, uv.xy)*0.25;
-          
-          // Jittering, to get rid of banding. Vitally important when accumulating discontinuous 
-          // samples, especially when only a few layers are being used.
-          uv += dTuv*(hash(uv.xy + fract(time))*2. - 1.);
-          
-          // The radial blur loop. Take a texture sample, move a little in the direction of
-          // the radial direction vector (dTuv) then take another, slightly less weighted,
-          // sample, add it to the total, then repeat the process until done.
-          for(float i=0.; i < SAMPLES; i++){
-          
-              uv -= dTuv;
-              col += texture2D(baseTexture, uv.xy) * weight;
-              weight *= decay;
-              
-          }
-          
-          // Multiplying the final color with a spotlight centered on the focal point of the radial
-          // blur. It's a nice finishing touch... that Passion came up with. If it's a good idea,
-          // it didn't come from me. :)
-          col *= (1. - dot(tuv, tuv)*.75);
-          
-          // Smoothstepping the final color, just to bring it out a bit, then applying some 
-          // loose gamma correction.
-          gl_FragColor = sqrt(smoothstep(0., 1., col));
-          
-          // Bypassing the radial blur to show the raymarched scene on its own.
-          //fragColor = sqrt(texture(iChannel0, fragCoord.xy / iResolution.xy));
-      }
+        vec2 velocity = VELOCITY_FACTOR * (clipPosition - previousClipPosition).xy;
+        vec4 finalColor = vec4(0.);
+        
+        vec2 offset = vec2(0.);
+        const int samples = 10;
+        for(int i = 0; i < samples; i++) {
+          offset = velocity * (float(i) / (float(samples) - 1.) - .5);
+          finalColor += texture2D(baseTexture, vUv + offset);
+        }
+        finalColor /= float(samples);
+        gl_FragColor = vec4(finalColor.rgb, 1.);
+			}
       `,
-      defines: {},
-    }),
-    "baseTexture"
+    })
   );
-  // composer.addPass(customPass);
+  shaderPass.uniforms.cameraNear.value = camera.near;
+  shaderPass.uniforms.cameraFar.value = camera.far;
+  shaderPass.uniforms.baseTexture.value = composer.renderTarget1.texture;
+  shaderPass.uniforms.depthTexture.value = depthRenderTarget.depthTexture;
+  shaderPass.renderToScreen = false;
+  composer.addPass(shaderPass);
 }
 
 function resize() {
   camera.aspect = document.body.offsetWidth / document.body.offsetHeight;
   camera.updateProjectionMatrix();
-  [renderer, composer].forEach((forSizing) => {
+  [renderer, composer, depthRenderTarget].forEach((forSizing) => {
     forSizing.setSize(
       document.body.offsetWidth * window.devicePixelRatio,
       document.body.offsetHeight * window.devicePixelRatio,
@@ -200,6 +165,7 @@ function resize() {
 function animate() {
   stats.begin();
   updateVelocities();
+  updateCameraAngle();
   [...boids, masterBoid].forEach((boid, index) => {
     let newPos = new THREE.Vector3().addVectors(
       boid.position,
@@ -207,18 +173,7 @@ function animate() {
     );
     boid.lookAt(newPos);
     boid.position.add(boid.userData.velocity);
-    // if (lights[index]) {
-    //   lights[index].position.set(...boid.position.toArray());
-    //   lights[index].target.position.set(
-    //     ...new THREE.Vector3()
-    //       .addVectors(
-    //         boid.position,
-    //         boid.userData.velocity.clone().multiplyScalar(20)
-    //       )
-    //       .toArray()
-    //   );
-    // }
-  });
+  }); 
 
   fires.forEach((fire) => {
     clock.getDelta();
@@ -229,7 +184,19 @@ function animate() {
     light.intensity = Math.abs(Math.sin(10 * i + clock.elapsedTime));
   });
 
+  renderer.render(scene, camera);
+
+  shaderPass.uniforms.clipToWorldMatrix.value
+    .getInverse(camera.matrixWorldInverse)
+    .multiply(new THREE.Matrix4().getInverse(camera.projectionMatrix));
+  shaderPass.uniforms.previousWorldToClipMatrix.value.copy(
+    previousProjectionMatrix.multiply(previousMatrixWorldInverse)
+  );
+
   composer.render();
+
+  previousMatrixWorldInverse.copy(camera.matrixWorldInverse);
+  previousProjectionMatrix.copy(camera.projectionMatrix);
 
   stats.end();
 
